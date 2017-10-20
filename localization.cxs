@@ -1,0 +1,80 @@
+'------------------------------------------------'
+'----------------- Translation ------------------'
+'------------------------------------------------'
+Class Localization
+	Const FRENCH = 1
+	Const ENGLISH = 2
+	
+	Field language:Int
+
+	Const TITLE = 1
+	Const EXPLANATION = 2
+	Const FRACTION = 3
+	Const SPEED = 4
+	Const SPIRAL = 5
+	Const Y_TITLE = 6
+	Const X_TITLE = 7
+	Const WON = 8
+	
+	Field sentences:String[40]
+	
+	
+	Method New(language:Int)
+		SetLanguage(language)
+	End Method
+	
+	
+	Method SetLanguage(language:Int)
+		Self.language = language
+		If (language = FRENCH)  LoadFrench()
+		If (language = ENGLISH)  LoadEnglish()
+	End Method
+	
+	
+	Method LoadFrench()
+		sentences[1] = "Jouez avec la matière noire !"
+		'sentences[2] = "Retrouvez la fraction de matière noire contenue dans notre~nGalaxie. Cette quantité modifie la vitesse de rotation des~nétoiles. Quelle fraction de matière noire~nexplique les vitesses observées ?"
+		sentences[2] = "La quantité de matière noire contenue dans notre Galaxie~ninfluence la vitesse de rotation des étoiles. Retrouvez la fraction~nde matière noire qui permet d'expliquer les vitesses observées."
+		sentences[3] = "Matière noire = "
+		sentences[4] = " %"
+		sentences[5] = "Vitesses étoiles"
+		sentences[6] = "Distance au centre~n(milliers d'années-lumière)"
+		sentences[7] = "Vitesse (km/s)"
+		sentences[8] = "Bravo !"
+		sentences[9] = "Observation"
+		sentences[10] = "Prédiction"
+		sentences[11] = "Explications"
+		sentences[12] = "Dans cette boîte je mettrai~ndes explications supplémentaires.~n~nLes vitesses des étoiles de cet applet sont grandement~naccélérées : à 200 km/s, il faut 350 millions d'années~nà une étoile pour faire un tour complet !~n~n~n~nCredits: Vincent Poireau, Cécile Renault, Canopée."
+		sentences[13] = "Chargement..."
+	End Method
+
+
+	Method LoadEnglish()
+		sentences[1] = "To be translated"
+		sentences[2] = "To be translated"
+		sentences[3] = "To be translated"
+		sentences[4] = "To be translated"
+		sentences[5] = "To be translated"
+		sentences[6] = "To be translated"
+		sentences[7] = "To be translated"
+		sentences[8] = "To be translated"
+		sentences[9] = "To be translated"
+		sentences[10] = "To be translated"
+		sentences[11] = "To be translated"
+		sentences[12] = "To be translated"
+		sentences[13] = "To be translated"
+	End Method	
+
+	
+	Method GetSentence:String(index:Int)
+		If (index <= sentences.Length)
+			Return sentences[index]
+		Else
+			Return ""
+		Endif
+	End Method
+	
+
+End Class
+
+

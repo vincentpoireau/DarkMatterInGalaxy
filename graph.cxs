@@ -1,0 +1,145 @@
+Import mojo
+Import darkMatterInGalaxy
+
+
+
+'------------------------------------------------'
+'-------------------- The graph -----------------'
+'------------------------------------------------'
+Class Graph
+	Field originX:Int      ' x origin of the axis
+	Field originY:Int      ' y origin of the axis
+	Field lengthX:Int      ' In pixel
+	Field lengthY:Int      ' In pixel
+	Field maxX:Int         ' Max value of x in the unit
+	Field maxY:Int         ' Max value of y in the unit
+	Field titleX:String
+	Field titleY:String
+	Field pointImage:Image = Null  ' The image to draw the point (if null, then simple circle)
+	Field scaleImage:Float
+	
+	Field points := New List<Point>
+	Field pointsRef := New List<Point>
+
+
+	Method New(originX:Int, originY:Int, titleX:String, titleY:String, lengthX:Int, lengthY:Int)
+		Self.originX = originX
+		Self.originY = originY
+		Self.lengthX = lengthX
+		Self.lengthY = lengthY
+		Self.titleX = titleX
+		Self.titleY = titleY		
+		Self.maxX = maxX
+		Self.maxY = maxY		
+	End Method
+	
+	
+	Method SetImage(pointImage:Image, scaleImage:Float)
+		Self.pointImage = pointImage
+		Self.scaleImage = scaleImage
+	End Method
+
+
+	Method AddPoint(x:Int, y:Int)
+		points.AddLast(New Point(x, y))
+	End Method
+
+
+	Method AddPointRef(x:Int, y:Int)
+		pointsRef.AddLast(New Point(x, y))
+	End Method
+		
+	
+	Method RemoveAllPoints()
+		points.Clear()
+	End Method
+	
+	
+	Method SetMaxX(maxX:Float)
+		Self.maxX = maxX
+	End Method
+
+	
+	Method SetMaxY(maxY:Float)
+		Self.maxY = maxY
+	End Method
+
+
+	Method Draw()
+		SetColor 255, 255, 255
+		' The two axes
+		DrawLine(originX, originY, originX + lengthX, originY)
+		DrawLine(originX, originY, originX, originY - lengthY)
+		' The points
+		SetBlend(LightenBlend)
+		' First the reference points
+		For Local point := Eachin pointsRef
+			SetColor 200, 0, 0
+			SetAlpha(0.7)
+			If (pointImage <> Null) Then  
+				DrawImage(pointImage, originX + point.x * lengthX / maxX, originY - point.y * lengthY / maxY, 0, scaleImage, scaleImage)   
+			Else
+				DrawCircle(originX + point.x * lengthX / maxX, originY - point.y * lengthY / maxY, 3)
+			Endif
+		Next
+		' Draw the legend for the reference
+		If (pointImage <> Null) Then  
+			DrawImage(pointImage, originX + 150, originY - 30, 0, scaleImage, scaleImage)   
+		Else
+			DrawCircle(originX + 150, originY - 30, 3)
+		Endif
+		' And then the actual points
+		For Local point := Eachin points
+			SetColor Rnd(200,255), Rnd(200,255), Rnd(200,255)
+			SetAlpha(Rnd(0.8, 1))
+			If (pointImage <> Null) Then  
+				DrawImage(pointImage, originX + point.x * lengthX / maxX, originY - point.y * lengthY / maxY, 0, scaleImage, scaleImage)   
+			Else
+				DrawCircle(originX + point.x * lengthX / maxX, originY - point.y * lengthY / maxY, 3)
+			Endif
+		Next
+		' Draw the legend for the actual points
+		If (pointImage <> Null) Then  
+			DrawImage(pointImage, originX + 150, originY - 50, 0, scaleImage, scaleImage)   
+		Else
+			DrawCircle(originX + 150, originY - 50, 3)
+		Endif
+		SetAlpha(1)
+		SetColor 255, 255, 255
+		' Text for the legend
+		DrawTextFont(font2, loc.GetSentence(9), originX + 160, originY - 26, 0.8, False, True)
+		DrawTextFont(font2, loc.GetSentence(10), originX + 160, originY - 46, 0.8, False, True)
+		' The axis titles
+		DrawTextFont(font2, titleX, originX + lengthX/2, originY + 30, 0.8, True)
+		DrawTextFont(font2, titleY, originX, originY - lengthY*1.2, 0.8, True)
+		' Draw the axis labels
+		Local nbOfLabels:Int = 5
+		For Local iX:Int = 0 To nbOfLabels
+			Local x:Int = maxX/nbOfLabels*iX
+			DrawTextFont(font2, x, originX + x * lengthX / maxX, originY + 4, 0.8, True)
+			If (iX <> 0)  DrawLine(originX + x * lengthX / maxX, originY, originX + x * lengthX / maxX, originY - 10)
+		Next
+		For Local iY:Int = 0 To nbOfLabels
+			Local y:Int = maxY/nbOfLabels*iY
+			DrawTextFont(font2, y, originX - 20, originY - y * lengthY / maxY, 0.8, True, True)
+			If (iY <> 0)  DrawLine(originX, originY - y * lengthY / maxY, originX + 10, originY - y * lengthY / maxY)
+		Next
+	End Method
+	
+End Class
+ 
+
+
+'------------------------------------------------'
+'-------------------- The point -----------------'
+'------------------------------------------------'
+Class Point
+	Field x:Int
+	Field y:Int
+	
+	Method New(x:Int, y:Int)
+		Self.x = x
+		Self.y = y
+	End Method
+
+End Class

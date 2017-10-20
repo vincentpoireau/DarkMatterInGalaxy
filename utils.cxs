@@ -1,0 +1,209 @@
+Import mojo
+Import darkMatterInGalaxy
+
+
+'------------------------------------------------'
+'--------- Computation of the delta time --------'
+'------------------------------------------------'
+Class DeltaTimer
+	Global updateRate:Int 
+	Global lastTime:Int
+	Global delta:Float   ' The difference of time since last frame in seconds
+	Global factor:Float
+	Global fps:Int
+	Global fpsCounter:Int
+	Global lastTimeFps:Int
+	global debugCounter:Int = 0
+
+	Function Init:Void(rate:Int)
+		updateRate = rate
+		lastTime = Millisecs()
+		lastTimeFps = Millisecs()
+		fps = 0
+		fpsCounter = 0
+	End Function
+
+
+	Function Update:Void()
+		debugCounter = debugCounter + 1
+		Local time:Int = Millisecs()
+		delta = (time - lastTime) / 1000.0
+		If debugCounter < 10  Print delta
+		factor = delta * updateRate
+		lastTime = time
+		' Compute FPS
+		fpsCounter = fpsCounter + 1
+		If (time - lastTimeFps > 1000) Then
+			fps = fpsCounter
+			fpsCounter = 0
+			lastTimeFps = time
+		Endif
+	End Function
+End
+
+
+
+'------------------------------------------------'
+'-------------------- The slider ----------------'
+'------------------------------------------------'
+Function Slider:Int(xl:Int = DeviceWidth() / 2, yl:Int = DeviceHeight() / 2, Lenght:Int = 100, Width:Int = 20, TrackedValue:Int, SliderImage:Image = Null, Type:Int = 0)
+	Local Percent:Int = Lenght * TrackedValue / 100
+	SetBlend 0
+	Select Type
+		Case 0
+			SetColor 255, 255, 255
+			DrawRect(xl - 2, yl + Width / 2 - 2, Lenght + 4, 6)
+			SetColor 000, 000, 000
+			DrawRect(xl, yl + Width / 2, Lenght, 2)
+		Case 1
+			SetColor 128, 16, 16
+			DrawRect(xl - 5, yl - 5, Lenght + 10, Width + 10)
+			SetColor 128, 64, 64
+			DrawRect(xl, yl, Lenght, Width)
+			SetColor 64, 128, 64
+			For Local YW:Int = 1 To Width
+				DrawLine(xl, yl + YW, xl + Percent, yl + YW)
+			Next
+		Case 2
+			SetColor 60, 60, 60
+			DrawRect(xl - 2, yl + Width / 2 - 2, Lenght + 4, 10)
+			SetColor 100, 100, 100
+			DrawRect(xl, yl + Width / 2, Lenght, 6)
+			SetColor 200, 200, 200
+			DrawRect(xl, yl + Width / 2, Percent, 6)
+	End Select
+	'SetColor 64, 162, 64
+	'DrawRect(xl - 3 + Percent, yl, 6, Width)
+	SetColor 60, 60, 60
+	DrawCircle(xl + Percent, yl + Width/2, Width*2.0/2)
+	SetColor 200, 200, 200
+	DrawCircle(xl + Percent, yl + Width/2, Width*1.8/2)
+	If SliderImage <> Null Then DrawImage SliderImage, xl + Percent, yl + Width / 2
+	If TouchX() > xl And TouchX() < xl + Lenght
+		If TouchY() > yl And TouchY() < yl + Width
+			If TouchDown()
+				TrackedValue = (TouchX() -xl) / Lenght * 100
+			Endif
+		Endif
+	Endif
+	If TrackedValue > 100 Then TrackedValue = 99
+	'If TrackedValue = 99 Then TrackedValue = 100
+	If TrackedValue < 0 Then TrackedValue = 0
+	Local scaleText:Float = 0.8
+	DrawTextFont(font1, loc.GetSentence(3) + TrackedValue + loc.GetSentence(4), xl, yl - 40, scaleText)
+	Return TrackedValue
+End Function
+
+
+
+'------------------------------------------------'
+'-------------- Check box -----------------------'
+'------------------------------------------------'
+Class CheckBox
+	Field label:String
+	Field x:Int
+	Field y:Int
+	Field checked:Bool
+	Field justClicked:Bool
+	Field checkmarkImage:Image
+	Field checkboxImage:Image
+	Field scaleImages:Float = 0.3
+	
+	Method New(label:String, x:Int, y:Int)
+		Self.label = label
+		Self.x = x
+		Self.y = y
+		checked = False
+		justClicked = false
+		checkmarkImage = LoadImage("checkmark.png", 1, Image.MidHandle)
+		checkboxImage = LoadImage("checkbox.png", 1, Image.MidHandle)
+	End Method
+	
+	
+	Method Check(flag:Bool)
+		checked = flag
+	End Method
+	
+	
+	Method isChecked:bool()
+		Return checked
+	End Method
+	
+	
+	Method JustClicked:Bool()
+		If justClicked Then
+			justClicked = False
+			Return True
+		Endif
+		Return False
+	End method
+	
+	
+	Method Update()
+		If CheckButtonTouched(x, y, checkboxImage.Width()*scaleImages, checkboxImage.Height()*scaleImages) Then 
+			checked = Not checked
+			justClicked = True
+		Endif
+	End Method
+	
+		
+	Method Draw()
+		DrawImage(checkboxImage, x, y, 0, scaleImages, scaleImages)
+		If (checked)  DrawImage(checkmarkImage, x, y, 0, scaleImages, scaleImages)
+		Local scaleText:Float = 0.8
+		DrawTextFont(font1, label, x + 30, y + 4, scaleText, False, True)
+	End Method
+End Class
+
+
+
+'------------------------------------------------'
+'-------------- Test button----------------------'
+'------------------------------------------------'
+Function CheckButtonTouched:Bool(x:Int, y:Int, sizeX:Int, sizeY:Int)
+	If (TouchX() > x - sizeX/2 And TouchX() < x + sizeX/2) Then
+		If (TouchY() > y - sizeY/2 And TouchY() < y + sizeY/2) Then
+			If (TouchHit()) Then
+				Return True
+			Endif
+		Endif
+	Endif
+	Return False
+End Function
+
+
+
+'------------------------------------------------'
+'---------- Draw text with fonts ----------------'
+'------------------------------------------------'
+Function DrawTextFont(font:BitmapFont, text:String, x:Int, y:Int, scale:Float = 1.0, centerX:Bool = False, centerY:Bool = False)
+	' First alignment
+	Local centerXOption:Int = eDrawAlign.LEFT
+	If (centerX)  centerXOption = eDrawAlign.CENTER 
+	Local centerYOption:Int = 0
+	If (centerY)  centerYOption = font.GetFontHeight/2
+
+	SetBlend AlphaBlend
+	SetColor 255, 255, 255
+	Scale(scale,scale)
+	font.DrawText(text, x/scale, (y - centerYOption)/scale, centerXOption)
+	SetMatrix(1,0,0,1,0,0)
+End Function
+
+
+
+'------------------------------------------------'
+'------------------ Draw the HUD ----------------'
+'------------------------------------------------'
+Function DrawHUD(x:Int, y:Int, w:Int, h:Int, alpha:Float = 1)
+	SetAlpha(alpha)
+	SetBlend(AlphaBlend)
+	Local widthContour:Int = 4
+	'SetColor 0, 0, 200
+	SetColor 180, 170, 160
+	DrawRect(x, y, w, h)
+	'SetColor 0, 0, 100
+	SetColor 200, 190, 180
+	DrawRect(x + widthContour, y + widthContour, w - widthContour*2, h - widthContour*2)
+	SetColor 255, 255, 255
+End Function
