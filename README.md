@@ -1,5 +1,8 @@
 # DarkMatterInGalaxy
-Applet to show the rotation velocities of the stars in the Galaxy depending on the dark matter content.
+Applet to show the rotation velocities of the stars in the Galaxy depending on the dark matter content. The working applet (not necessarily the latest version) can be found here:
+http://lappweb.in2p3.fr/~poireau/AMS/DarkMatterInGalaxy/
+
+This applet was developped for a French webdoc on the dark matter.
 
 The applet is written is a high level language called Cerberus X. This language is able to translate a generic coding into html5, Android, or iOS applications.
 The web page of Cerberus X is:
