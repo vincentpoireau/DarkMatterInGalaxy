@@ -28,7 +28,6 @@ Class DeltaTimer
 		debugCounter = debugCounter + 1
 		Local time:Int = Millisecs()
 		delta = (time - lastTime) / 1000.0
-		If debugCounter < 10  Print delta
 		factor = delta * updateRate
 		lastTime = time
 		' Compute FPS
@@ -105,6 +104,7 @@ Class CheckBox
 	Field y:Int
 	Field checked:Bool
 	Field justClicked:Bool
+	Field visible:Bool
 	Field checkmarkImage:Image
 	Field checkboxImage:Image
 	Field scaleImages:Float = 0.3
@@ -114,7 +114,8 @@ Class CheckBox
 		Self.x = x
 		Self.y = y
 		checked = False
-		justClicked = false
+		justClicked = False
+		visible = True
 		checkmarkImage = LoadImage("checkmark.png", 1, Image.MidHandle)
 		checkboxImage = LoadImage("checkbox.png", 1, Image.MidHandle)
 	End Method
@@ -125,8 +126,13 @@ Class CheckBox
 	End Method
 	
 	
-	Method isChecked:bool()
+	Method isChecked:Bool()
 		Return checked
+	End Method
+	
+	
+	Method SetVisible(visible:Bool)
+		Self.visible = visible
 	End Method
 	
 	
@@ -136,10 +142,11 @@ Class CheckBox
 			Return True
 		Endif
 		Return False
-	End method
+	End Method
 	
 	
 	Method Update()
+		If Not visible  Return
 		If CheckButtonTouched(x, y, checkboxImage.Width()*scaleImages, checkboxImage.Height()*scaleImages) Then 
 			checked = Not checked
 			justClicked = True
@@ -148,10 +155,11 @@ Class CheckBox
 	
 		
 	Method Draw()
+		If Not visible  Return
 		DrawImage(checkboxImage, x, y, 0, scaleImages, scaleImages)
 		If (checked)  DrawImage(checkmarkImage, x, y, 0, scaleImages, scaleImages)
 		Local scaleText:Float = 0.8
-		DrawTextFont(font1, label, x + 30, y + 4, scaleText, False, True)
+		DrawTextFont(font1, label, x + 25, y + 4, scaleText, False, True)
 	End Method
 End Class
 
@@ -205,5 +213,24 @@ Function DrawHUD(x:Int, y:Int, w:Int, h:Int, alpha:Float = 1)
 	'SetColor 0, 0, 100
 	SetColor 200, 190, 180
 	DrawRect(x + widthContour, y + widthContour, w - widthContour*2, h - widthContour*2)
+	SetColor 255, 255, 255
+End Function
+
+
+
+'------------------------------------------------'
+'--------------- Create the halo ----------------'
+'------------------------------------------------'
+' This function is used once to create the halo and make a screen copy of it
+Function CreateHalo()
+	SetBlend 0
+	SetAlpha 1
+	For Local r:Int = 500 To 1 Step -1
+		Local percent:Float = 1.0 - Float(r) / Float(300)
+		If percent < 0.01  percent = 0.01
+		Local color:Int = percent * 255
+		SetColor color, color, color '* 1.2
+		DrawCircle(DeviceWidth()/2, DeviceHeight()/2, r)
+	Next
 	SetColor 255, 255, 255
 End Function

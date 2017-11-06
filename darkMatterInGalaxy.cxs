@@ -5,10 +5,6 @@
 Jean-Baptiste :
 Peut-être rajouter quelques infos supplémentaires un peu plus pointues dans explications. Par exemple, comment est distribuée la matière noire dans la galaxie ? 
 ou pourquoi la vitesse observée croit puis décroit avec avec le rayon avec le point de transition autour de 10000 a.l. ?
-Halo :
-Par exemple un checkbox en plus "Halo de matière noire" cliquable : si on le clique, on dézoome d'un facteur 10 sur la galaxie, et on voit le halo
-de matière noire qui entoure la galaxie, avec le halo dont la couleur devient plus foncé à mesure que l'on augmente la fraction ! 
-Bref, je peux encore m'amuser (on pourrait même imaginer le halo plus foncé au centre car plus de concentration de matière noire). 
 #end rem
 
 Import mojo
@@ -18,6 +14,7 @@ Import fontmachine
 Import graph
 Import utils
 Import localization
+Import star
 
 #MOJO_AUTO_SUSPEND_ENABLED=False   ' Allows that the animation continue if the window loses the focus
 
@@ -27,16 +24,18 @@ Global drawVelocities:Bool = False    ' To draw or not the velocity aboveOrhNott
 Global spiralArms:Bool = False        ' To draw many stars with spiral arms
 Global starShape = 1                 ' 1 is a jpg picture, 2 is a circle, 3 is a point
 
-Global pixelTokpc:Float   ' The conversion from pixel to kpc
+Global pixelTokpc:Float   ' The conversion from pixel to kp
 Global scaleGalaxy:Float  ' To rescale the galaxy picture
+Global scaleGalaxyInit:Float  ' The scale of the galaxy picture when zoomed at the maximum
+Global galaxyWidthPercent:Float  ' The size of the galaxy in percent (0-1)
 Global scaleStar:Float    ' To rescale the star picture
 Global centerGalaxyX, centerGalaxyY   ' The center of the galaxy
 Global starImage:Image
 Global DMFraction:Int                    ' Fraction of dark matter
 Global DMFractionReference:Int = 85      ' Fraction of dark matter in the Galaxy (the right answer!)
 Global foundGoodFraction:Bool
-Global sliderValue:Int    
-Global isPaused:Bool       ' If the rotation is paused
+Global DMSliderValue:Int    
+Global isPaused:Bool                     ' If the rotation is paused
 Global font1:BitmapFont
 Global font2:BitmapFont
 
@@ -54,102 +53,22 @@ End
 
 
 
-'------------------------------------------------'
-'----------------- Class star -------------------'
-'------------------------------------------------'
-Class Star
-	Field x:Float, y:Float
-	Field r:Float             ' Radius
-	Field angle:Float
-	Field velocityTotal:Float ' Velocity of the star considering normal and dark matter
-	Field alpha:Float
-	
-	
-	Method New(angle:Float, r:Float)
-		Self.alpha = 1
-		Self.angle = angle
-		Self.r = r
-
-		ComputeVelocity()
-	End
-	
-	
-	Method ComputeVelocity()
-		Self.velocityTotal = ComputeStarVelocity(r)
-	End Method
-
-	
-	Method Update()
-		' Compute the Delta angle corresponding to the velocity
-		Local distance:Float = velocityTotal * DeltaTimer.delta
-		distance = distance / 2.5   ' We divide the distance to slow down the rotation
-		Local rInPixel:Float = r / pixelTokpc   ' Convert the value in kpc to pixels
-		Local diffAngle:Float = distance / rInPixel
-'		Local diffAngle:Float = 2 * ASin(distance / (2 * rInPixel))  ' Wrong formula, only an approximation
-		angle = angle + diffAngle
-		x = rInPixel * Cosr(angle)
-		y = rInPixel * Sinr(angle)
-	End
-
-	
-	Method Draw()
-		SetAlpha(Rnd(0.6, 1))
-		SetBlend(LightenBlend)
-		SetColor Rnd(180,255), Rnd(180,255), Rnd(180,255)    ' Let's make the star with some scintillation!
-		If (starShape = 1) DrawImage(starImage,x + centerGalaxyX, y + centerGalaxyY, 0, scaleStar, scaleStar)   
-		If (starShape = 2) DrawCircle(x + centerGalaxyX, y + centerGalaxyY, 2)   
-		If (starShape = 3) DrawPoint(x + centerGalaxyX, y + centerGalaxyY)   
-		SetAlpha(1)
-		SetColor 255, 255, 255
-		If (drawVelocities) Then
-			SetAlpha(0.3)
-			SetBlend(AlphaBlend)
-			SetColor 0, 0, 0
-			DrawRect(x + centerGalaxyX - 30, y + centerGalaxyY - 27, 60, 15)
-			SetAlpha(1)
-			DrawTextFont(font2, Int(velocityTotal) + " km/s", x + centerGalaxyX, y + centerGalaxyY - 30, 0.6, True)
-		Endif
-	End
-	
-End
-
-
-
-'------------------------------------------------'
-'------ Function to compute the star velocity ---'
-'---------- Credit: Cécile Renault --------------'
-'------------------------------------------------'
-Function ComputeStarVelocity:Float(r:Float)
-	' Compute the velocity from normal matter
-	Local ds_max:Float = 4
-	Local Ms:Float = Pow(r, 2) / Pow(ds_max, 2)
-	If (r > ds_max)  Ms = 1
-	Local velocityFromMatterSquare:Float = 6.67e-11 / r / 1000.0 / 3e16 * Ms * 0.5e11 * 2e30
-	Local velocityFromMatter:Float = Sqrt(velocityFromMatterSquare) / 1000.0
-	'Print "Velocity from matter = " + velocityFromMatter
-	
-	' And now from dark matter
-	Local f:Float = DMFraction / 100.0
-	Local dc:Float = 12
-	Local dmax:Float = 60
-	Local velocityFromDarkMatterSquare:Float = 6.67e-11 *100e9 * 2e30 * f/(1-f) * Pow(r, 2) / (Pow(dc, 2) +Pow(r, 2)) / dmax / 1e3 / 3e16
-	Local velocityFromDarkMatter:Float = Sqrt(velocityFromDarkMatterSquare)
-	
-	' Total velocity (we add the squares)
-	Local velocityTotal:Float = Sqrt(velocityFromMatterSquare + velocityFromDarkMatterSquare) / 1000.0
-	'Print "Total velocity = " + velocityTotal
-	Return velocityTotal
-End Function
-
-
 
 '------------------------------------------------'
 '-------------- The main application ------------'
 '------------------------------------------------'
 Class DarkMatterInGalaxy Extends App
 
+	Const GALAXY_SIZE:Float = 25.0    ' The size of the galaxy in kpc
+	Const HALO_SIZE:Float = 250.0      ' The size of the halo in kpc
+	Const STEP_WIDTH:Float = 0.01  ' The step to zoom or unzoom
+	Const GALAXY_WIDTH_PERCENT_MAX:Float = 0.62  ' The max size of the galaxy in percent of the width screen
+	Const GALAXY_WIDTH_PERCENT_MIN:Float = 0.07  ' And the min
+
 	Field createApplet
 	Field galaxyImage:Image
+	Field haloImage:Image
+	Field scaleHalo:Float
 	Field buttonImage:Image
 	Field scaleButton:Float
 	Field button1X:Int, button1Y:Int    ' The position of the rewind and play/pause button
@@ -158,6 +77,12 @@ Class DarkMatterInGalaxy Extends App
 	Field velocityCheckBox:CheckBox
 	Field spiralCheckBox:CheckBox
 	Field explanationCheckBox:CheckBox
+	Field haloCheckBox:CheckBox
+
+	Field galaxyWidthInPixel:Int  ' The size of the galaxy in pixels
+	Field stepWidth:Float         ' To zoom/unzoom on the galaxy and the halo
+	
+	Field haloSize:Int = 300      ' Size of the halo in kpc
 
 	Field stars := New List<Star>
 	
@@ -180,7 +105,9 @@ Class DarkMatterInGalaxy Extends App
 	
 	Method CreateApplet()	
 		DMFraction = 0
-		sliderValue = DMFraction
+		DMSliderValue = DMFraction
+		
+		stepWidth = STEP_WIDTH
 		
 		' Buttons
 		buttonImage = LoadImage("buttons.png", 3, Image.MidHandle)
@@ -193,25 +120,32 @@ Class DarkMatterInGalaxy Extends App
 		button2Y = 120
 		
 		' CheckBoxes
-		velocityCheckBox = New CheckBox(loc.GetSentence(5), 0.75 * DeviceWidth(), 285)
+		velocityCheckBox = New CheckBox(loc.GetSentence(5), 0.75 * DeviceWidth(), 275)
 		velocityCheckBox.Check(drawVelocities)
 
-		explanationCheckBox = New CheckBox(loc.GetSentence(11), 0.75 * DeviceWidth(), 335)
+		haloCheckBox = New CheckBox(loc.GetSentence(14), 0.75 * DeviceWidth(), 313)
+
+		explanationCheckBox = New CheckBox(loc.GetSentence(11), 0.75 * DeviceWidth(), 350)
 		
 		'spiralCheckBox = New CheckBox("Bras spiraux", 0.75 * DeviceWidth(), 350)
 		'spiralCheckBox.Check(spiralArms)
 		
 		galaxyImage = LoadImage("m74_gemini.jpg", 1, Image.MidHandle)
 		' We want the galaxy to occupy x% of DeviceWidth()
-		Local galaxyWidth:Int = 0.64 * DeviceWidth()
-		scaleGalaxy =  Float(galaxyWidth) / Float(galaxyImage.Width())
+		galaxyWidthPercent = GALAXY_WIDTH_PERCENT_MAX
+		galaxyWidthInPixel = galaxyWidthPercent * DeviceWidth()
+		scaleGalaxy =  Float(galaxyWidthInPixel) / Float(galaxyImage.Width())
+		scaleGalaxyInit = scaleGalaxy
 		' Compute the center of the Galaxy
-		centerGalaxyX = galaxyWidth / 2
+		centerGalaxyX = galaxyWidthInPixel / 2
 		centerGalaxyY = DeviceHeight() - (galaxyImage.Height() * scaleGalaxy) / 2
-		
+
 		' Compute the factor to convert from pixel distance to kpc
 		' The width of the image is equal to 25 kpc
-		pixelTokpc = 25.0 / galaxyWidth		
+		pixelTokpc = GALAXY_SIZE / galaxyWidthInPixel	
+
+		haloImage = LoadImage("halo.jpg", 1, Image.MidHandle)
+		scaleHalo = (HALO_SIZE / pixelTokpc) / Float(haloImage.Width()) * 1.3  ' 1.3 because of the black margin
 		
 		starImage = LoadImage("star.png", 1, Image.MidHandle)
 		scaleStar = 0.3
@@ -293,8 +227,8 @@ Class DarkMatterInGalaxy Extends App
 	
 	Method OnUpdate()
 	
-		If (createApplet = 0)  return
-	
+		If (createApplet = 0)  Return
+		
 		DeltaTimer.Update()
 		
 		#rem
@@ -323,6 +257,15 @@ Class DarkMatterInGalaxy Extends App
 		velocityCheckBox.Update()
 		drawVelocities = velocityCheckBox.isChecked()
 		explanationCheckBox.Update()
+		haloCheckBox.Update()
+		If haloCheckBox.isChecked() Then
+			stepWidth = -STEP_WIDTH ' Unzoom
+			velocityCheckBox.SetVisible(False)
+		Else
+			stepWidth = STEP_WIDTH ' Zoom
+			velocityCheckBox.SetVisible(True)			
+		Endif
+
 		'spiralCheckBox.Update()
 		'spiralArms = spiralCheckBox.isChecked()
 		'If spiralCheckBox.JustClicked() Then
@@ -339,14 +282,38 @@ Class DarkMatterInGalaxy Extends App
 	
 		' Check if the slider was released
 		Local DMFractionChanged:Bool = False
-		If (sliderValue <> DMFraction And Not TouchDown)
-			DMFraction = sliderValue
+		If (DMSliderValue <> DMFraction And Not TouchDown)
+			DMFraction = DMSliderValue
 			DMFractionChanged = True
 		Endif
+		
+		If (KeyHit(KEY_LEFT))  Then
+			DMSliderValue -= 1
+			If DMSliderValue < 0  DMSliderValue = 0
+			DMFractionChanged = True
+		Endif	
+		If (KeyHit(KEY_RIGHT))  Then
+			DMSliderValue += 1
+			If DMSliderValue > 99  DMSliderValue = 99
+			DMFractionChanged = True
+		Endif	
+			
+		' Update the scale of the galaxy
+		galaxyWidthPercent += stepWidth * DeltaTimer.factor
+		If galaxyWidthPercent > GALAXY_WIDTH_PERCENT_MAX Then galaxyWidthPercent = GALAXY_WIDTH_PERCENT_MAX
+		If galaxyWidthPercent < GALAXY_WIDTH_PERCENT_MIN Then galaxyWidthPercent = GALAXY_WIDTH_PERCENT_MIN		
+		galaxyWidthInPixel = galaxyWidthPercent * DeviceWidth()
+		scaleGalaxy =  Float(galaxyWidthInPixel) / Float(galaxyImage.Width())	
+		' Compute the factor to convert from pixel distance to kpc
+		' The width of the image is equal to 25 kpc
+		pixelTokpc = GALAXY_SIZE / galaxyWidthInPixel
+
+		' And of the halo
+		scaleHalo = (HALO_SIZE / pixelTokpc) / Float(haloImage.Width()) * 1.3 ' 1.3 because of the black margin
 			
 		' Update the stars
 		For Local star := Eachin stars
-			If (Not isPaused)  star.Update()
+			star.Update(isPaused)
 			If (DMFractionChanged) Then star.ComputeVelocity()
 		Next
 		
@@ -373,7 +340,11 @@ Class DarkMatterInGalaxy Extends App
 	Method OnRender()
 				
 		Cls
-		
+
+		' To call once to create the halo and make a screen copy of it
+		' CreateHalo()
+		' Return()
+			
 		' Display loading screen first
 		If (createApplet = 0) Then
 			DrawHUD(DeviceWidth()*0.4, DeviceHeight()*0.45, 200, 50)
@@ -386,7 +357,21 @@ Class DarkMatterInGalaxy Extends App
 			createApplet = 1
 			Return
 		Endif		
-			
+							
+		' Draw the galaxy
+		DrawImage(galaxyImage, centerGalaxyX, centerGalaxyY, 0, scaleGalaxy, scaleGalaxy)
+
+		If haloCheckBox.isChecked() Then
+			SetAlpha Float(DMSliderValue) / 100.0
+			DrawImage(haloImage, centerGalaxyX, centerGalaxyY, 0, scaleHalo, scaleHalo)
+			SetAlpha 1
+		Endif
+		
+		' Draw the stars
+		For Local star := Eachin stars
+			star.Draw()
+		Next
+
 		SetBlend AlphaBlend
 			
 		' The title
@@ -395,7 +380,7 @@ Class DarkMatterInGalaxy Extends App
 		DrawTextFont(font1, loc.GetSentence(2), DeviceWidth*0.35, 50, 0.8, True)
 
 		' The HUD with the buttons	
-		DrawHUD(DeviceWidth()*0.7, 70, DeviceWidth()*0.25, DeviceHeight()*0.4)
+		DrawHUD(DeviceWidth()*0.7, 70, DeviceWidth()*0.265, DeviceHeight()*0.4)
 
 		' Draw the buttons
 		DrawImage(buttonImage, button1X, button1Y, 0, scaleButton, scaleButton, 0)
@@ -406,22 +391,13 @@ Class DarkMatterInGalaxy Extends App
 		Endif	
 		
 		' Draw the slider
-		sliderValue = Slider(0.73*DeviceWidth(), 220, DeviceWidth()*0.2, 20, sliderValue, Null, 2)
+		DMSliderValue = Slider(0.73*DeviceWidth(), 220, DeviceWidth()*0.2, 20, DMSliderValue, Null, 2)
 
 		' Draw the checkbox
 		If Not spiralArms Then velocityCheckBox.Draw()
 		explanationCheckBox.Draw()
+		haloCheckBox.Draw()
 		'spiralCheckBox.Draw()
-		
-		SetBlend LightenBlend
-
-		' Draw the galaxy
-		DrawImage(galaxyImage, centerGalaxyX+12, centerGalaxyY, 0, scaleGalaxy, scaleGalaxy) ' +12 to make the exact correspondence with the galaxy center and the image center
-	
-		' Draw the stars
-		For Local star := Eachin stars
-			star.Draw()
-		Next
 		
 		' Draw the graph
 		'DrawHUD(DeviceWidth()*0.63, DeviceHeight()*0.55, DeviceWidth()*0.365, DeviceHeight()*0.43)

@@ -1,0 +1,90 @@
+Import darkMatterInGalaxy
+
+'------------------------------------------------'
+'----------------- Class star -------------------'
+'------------------------------------------------'
+Class Star
+	Field x:Float, y:Float
+	Field r:Float             ' Radius
+	Field angle:Float
+	Field velocityTotal:Float ' Velocity of the star considering normal and dark matter
+	Field alpha:Float
+	
+	
+	Method New(angle:Float, r:Float)
+		Self.alpha = 1
+		Self.angle = angle
+		Self.r = r
+
+		ComputeVelocity()
+	End
+	
+	
+	Method ComputeVelocity()
+		Self.velocityTotal = ComputeStarVelocity(r)
+	End Method
+
+	
+	Method Update(isPaused:Bool)
+		' Compute the Delta angle corresponding to the velocity
+		Local distance:Float = velocityTotal * DeltaTimer.delta
+		distance = distance / 60.0   ' We divide the distance to slow down the rotation
+		Local rInPixel:Float = r / pixelTokpc   ' Convert the value in kpc to pixels
+'		Local diffAngle:Float = distance / rInPixel
+		Local diffAngle:Float = distance / r
+'		Local diffAngle:Float = 2 * ASin(distance / (2 * rInPixel))  ' Wrong formula, only an approximation
+		If Not isPaused  angle = angle + diffAngle
+		x = rInPixel * Cosr(angle)
+		y = rInPixel * Sinr(angle)
+	End
+
+	
+	Method Draw()
+		SetAlpha(Rnd(0.6, 1))
+		SetBlend(LightenBlend)
+		SetColor Rnd(180,255), Rnd(180,255), Rnd(180,255)    ' Let's make the star with some scintillation!
+		Local scale:Float = Max(scaleStar * scaleGalaxy / scaleGalaxyInit, 0.1)
+		If (starShape = 1) DrawImage(starImage,x + centerGalaxyX, y + centerGalaxyY, 0, scale, scale)   
+		If (starShape = 2) DrawCircle(x + centerGalaxyX, y + centerGalaxyY, 2)   
+		If (starShape = 3) DrawPoint(x + centerGalaxyX, y + centerGalaxyY)   
+		SetAlpha(1)
+		SetColor 255, 255, 255
+		If (drawVelocities And galaxyWidthPercent > 0.20) Then
+			SetAlpha(0.3)
+			SetBlend(AlphaBlend)
+			SetColor 0, 0, 0
+			DrawRect(x + centerGalaxyX - 30, y + centerGalaxyY - 27, 60, 15)
+			SetAlpha(1)
+			DrawTextFont(font2, Int(velocityTotal) + " km/s", x + centerGalaxyX, y + centerGalaxyY - 30, 0.6, True)
+		Endif
+	End
+	
+End
+
+
+
+'------------------------------------------------'
+'------ Function to compute the star velocity ---'
+'---------- Credit: Cécile Renault --------------'
+'------------------------------------------------'
+Function ComputeStarVelocity:Float(r:Float)
+	' Compute the velocity from normal matter
+	Local ds_max:Float = 4
+	Local Ms:Float = Pow(r, 2) / Pow(ds_max, 2)
+	If (r > ds_max)  Ms = 1
+	Local velocityFromMatterSquare:Float = 6.67e-11 / r / 1000.0 / 3e16 * Ms * 0.5e11 * 2e30
+	Local velocityFromMatter:Float = Sqrt(velocityFromMatterSquare) / 1000.0
+	'Print "Velocity from matter = " + velocityFromMatter
+	
+	' And now from dark matter
+	Local f:Float = DMFraction / 100.0
+	Local dc:Float = 12
+	Local dmax:Float = 60
+	Local velocityFromDarkMatterSquare:Float = 6.67e-11 *100e9 * 2e30 * f/(1-f) * Pow(r, 2) / (Pow(dc, 2) +Pow(r, 2)) / dmax / 1e3 / 3e16
+	Local velocityFromDarkMatter:Float = Sqrt(velocityFromDarkMatterSquare)
+	
+	' Total velocity (we add the squares)
+	Local velocityTotal:Float = Sqrt(velocityFromMatterSquare + velocityFromDarkMatterSquare) / 1000.0
+	'Print "Total velocity = " + velocityTotal
+	Return velocityTotal
+End Function

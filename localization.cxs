@@ -6,15 +6,6 @@ Class Localization
 	Const ENGLISH = 2
 	
 	Field language:Int
-
-	Const TITLE = 1
-	Const EXPLANATION = 2
-	Const FRACTION = 3
-	Const SPEED = 4
-	Const SPIRAL = 5
-	Const Y_TITLE = 6
-	Const X_TITLE = 7
-	Const WON = 8
 	
 	Field sentences:String[40]
 	
@@ -46,6 +37,7 @@ Class Localization
 		sentences[11] = "Explications"
 		sentences[12] = "Dans cette boîte je mettrai~ndes explications supplémentaires.~n~nLes vitesses des étoiles de cet applet sont grandement~naccélérées : à 200 km/s, il faut 350 millions d'années~nà une étoile pour faire un tour complet !~n~n~n~nCredits: Vincent Poireau, Cécile Renault, Canopée."
 		sentences[13] = "Chargement..."
+		sentences[14] = "Halo matière noire"
 	End Method
 
 
@@ -63,6 +55,7 @@ Class Localization
 		sentences[11] = "To be translated"
 		sentences[12] = "To be translated"
 		sentences[13] = "To be translated"
+		sentences[14] = "To be translated"
 	End Method	
 
 	
