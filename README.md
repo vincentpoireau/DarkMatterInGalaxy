@@ -12,3 +12,5 @@ Cerberus X can be downloaded (for free) at: https://krautapps.itch.io/cerberus-x
 
 DarkMatterInGalaxy needs one additional module to work: FontMachine.
 FontMachine can be downloaded from: https://github.com/ziggybcn/fontmachine. Install the repository fontmachine/ in the modules\_ext/ directory of the Cerberus directory.
+
+DarkMatterInGalaxy can be translated to any language modifying the localization.cbx file and recompiling the project.
