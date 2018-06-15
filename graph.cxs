@@ -90,8 +90,8 @@ Class Graph
 		Endif
 		' And then the actual points
 		For Local point := Eachin points
-			SetColor Rnd(200,255), Rnd(200,255), Rnd(200,255)
-			SetAlpha(Rnd(0.8, 1))
+			SetColor Rnd(220,255), Rnd(220,255), Rnd(220,255)
+			SetAlpha(Rnd(0.9, 1))
 			If (pointImage <> Null) Then  
 				DrawImage(pointImage, originX + point.x * lengthX / maxX, originY - point.y * lengthY / maxY, 0, scaleImage, scaleImage)   
 			Else

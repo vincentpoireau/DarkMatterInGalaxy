@@ -1,5 +1,4 @@
 ' TODO : avoir un prégraphe en jpg ?
-' TODO : bouton play/pause décalé
 ' TODO : avoir des dimensions mieux adaptées aux téléphones ? Forcer l'orientation (en html5) ?
 #rem
 Jean-Baptiste :
@@ -36,7 +35,7 @@ Global DMFractionReference:Int = 85      ' Fraction of dark matter in the Galaxy
 Global foundGoodFraction:Bool
 Global DMSliderValue:Int    
 Global isPaused:Bool                     ' If the rotation is paused
-Global font1:BitmapFont
+'Global font1:BitmapFont
 Global font2:BitmapFont
 
 Global loc:Localization              ' To translate easily the text
@@ -65,14 +64,17 @@ Class DarkMatterInGalaxy Extends App
 	Const GALAXY_WIDTH_PERCENT_MAX:Float = 0.62  ' The max size of the galaxy in percent of the width screen
 	Const GALAXY_WIDTH_PERCENT_MIN:Float = 0.07  ' And the min
 
-	Field createApplet
+	Field indexLoadingImage:Int = 0
+	Field indexMaxLoadingImage:Int
 	Field galaxyImage:Image
 	Field haloImage:Image
 	Field scaleHalo:Float
-	Field buttonImage:Image
+	Field playImage:Image
+	Field pauseImage:Image
+	Field backImage:Image
 	Field scaleButton:Float
-	Field button1X:Int, button1Y:Int    ' The position of the rewind and play/pause button
-	Field button2X:Int, button2Y:Int
+	Field buttonBackX:Int, buttonBackY:Int    ' The position of the rewind and play/pause button
+	Field buttonPlayX:Int, buttonPlayY:Int
 	Field buttonSizeX:Int, buttonSizeY:Int
 	Field velocityCheckBox:CheckBox
 	Field spiralCheckBox:CheckBox
@@ -84,6 +86,12 @@ Class DarkMatterInGalaxy Extends App
 	
 	Field haloSize:Int = 300      ' Size of the halo in kpc
 
+  	' Parameter for the congratulation panel
+	Field alphaCongratulation:Float = 0
+	Field yCongratulation:Float
+	Field yMinCongratulation:Int   ' Starting y
+	Field yMaxCongratulation:Int   ' Ending y
+
 	Field stars := New List<Star>
 	
 	Field graphVelocity:Graph
@@ -93,13 +101,37 @@ Class DarkMatterInGalaxy Extends App
 	
 	Method OnCreate()
 		
-		SetUpdateRate(UPDATE_RATE)
-		
-		' Data will be loaded later, after the loading screen is displayed
-		createApplet = 0
+		SetUpdateRate(UPDATE_RATE)		
+
+		' Maximum index of images to load in LoadImageIndex
+		indexMaxLoadingImage = 5
 		
 		' Text
 		loc = New Localization(Localization.FRENCH)
+	End
+	
+	
+	Method LoadImageIndex(index:Int)
+		' Set correctly indexMaxLoadingImage to the bigger index
+		If index = 1 Then
+			playImage = LoadImage("play.png", 1, Image.MidHandle)
+			pauseImage = LoadImage("pause.png", 1, Image.MidHandle)
+			backImage = LoadImage("back.png", 1, Image.MidHandle)
+		Endif			
+		If index = 2  galaxyImage = LoadImage("m74_gemini.jpg", 1, Image.MidHandle)
+		If index = 3  haloImage = LoadImage("halo.jpg", 1, Image.MidHandle)
+		If index = 4  starImage = LoadImage("star.png", 1, Image.MidHandle)
+		' Load fonts
+		'If index = 5 Then
+		'	font1 = New BitmapFont("Fonts/ZooSmall.txt", True)
+		'	font1.DrawBorder = True
+		'	font1.DrawShadow = True
+		'Endif
+		If index = 5
+			font2 = New BitmapFont("Fonts/CleanWhite.txt", True)
+			font2.DrawBorder = True
+			font2.DrawShadow = True 
+		Endif
 	End
 	
 	
@@ -110,27 +142,26 @@ Class DarkMatterInGalaxy Extends App
 		stepWidth = STEP_WIDTH
 		
 		' Buttons
-		buttonImage = LoadImage("buttons.png", 3, Image.MidHandle)
 		scaleButton = 0.7
-		buttonSizeX = buttonImage.Width()
-		buttonSizeY = buttonImage.Height()		
-		button1X = 0.78 * DeviceWidth()
-		button1Y = 120
-		button2X = 0.87 * DeviceWidth()
-		button2Y = 120
+		buttonSizeX = playImage.Width()
+		buttonSizeY = playImage.Height()		
+		buttonBackX = 0.1 * DeviceWidth()
+		buttonBackY = DeviceHeight()*0.84
+		buttonPlayX = 0.18 * DeviceWidth()
+		buttonPlayY = DeviceHeight()*0.84
 		
 		' CheckBoxes
-		velocityCheckBox = New CheckBox(loc.GetSentence(5), 0.75 * DeviceWidth(), 275)
+		explanationCheckBox = New CheckBox(loc.GetSentence(11), 0.1 * DeviceWidth(), 0.95 * DeviceHeight())
+
+		haloCheckBox = New CheckBox(loc.GetSentence(14), 0.4 * DeviceWidth(), 0.95 * DeviceHeight())
+
+		velocityCheckBox = New CheckBox(loc.GetSentence(5), 0.75 * DeviceWidth(), 0.95 * DeviceHeight())
 		velocityCheckBox.Check(drawVelocities)
-
-		haloCheckBox = New CheckBox(loc.GetSentence(14), 0.75 * DeviceWidth(), 313)
-
-		explanationCheckBox = New CheckBox(loc.GetSentence(11), 0.75 * DeviceWidth(), 350)
 		
 		'spiralCheckBox = New CheckBox("Bras spiraux", 0.75 * DeviceWidth(), 350)
 		'spiralCheckBox.Check(spiralArms)
 		
-		galaxyImage = LoadImage("m74_gemini.jpg", 1, Image.MidHandle)
+		'galaxyImage = LoadImage("m74_gemini.jpg", 1, Image.MidHandle)
 		' We want the galaxy to occupy x% of DeviceWidth()
 		galaxyWidthPercent = GALAXY_WIDTH_PERCENT_MAX
 		galaxyWidthInPixel = galaxyWidthPercent * DeviceWidth()
@@ -138,20 +169,20 @@ Class DarkMatterInGalaxy Extends App
 		scaleGalaxyInit = scaleGalaxy
 		' Compute the center of the Galaxy
 		centerGalaxyX = galaxyWidthInPixel / 2
-		centerGalaxyY = DeviceHeight() - (galaxyImage.Height() * scaleGalaxy) / 2
+		centerGalaxyY = galaxyImage.Height() * scaleGalaxy / 2
 
 		' Compute the factor to convert from pixel distance to kpc
 		' The width of the image is equal to 25 kpc
 		pixelTokpc = GALAXY_SIZE / galaxyWidthInPixel	
 
-		haloImage = LoadImage("halo.jpg", 1, Image.MidHandle)
+		'haloImage = LoadImage("halo.jpg", 1, Image.MidHandle)
 		scaleHalo = (HALO_SIZE / pixelTokpc) / Float(haloImage.Width()) * 1.3  ' 1.3 because of the black margin
 		
-		starImage = LoadImage("star.png", 1, Image.MidHandle)
+		'starImage = LoadImage("star.png", 1, Image.MidHandle)
 		scaleStar = 0.3
 		
 		' Create the graph
-		graphVelocity = New Graph(0.7*DeviceWidth(), DeviceHeight()*0.87, loc.GetSentence(6), loc.GetSentence(7), 0.28*DeviceWidth(), DeviceHeight()*0.3)
+		graphVelocity = New Graph(0.7*DeviceWidth(), DeviceHeight()*0.5, loc.GetSentence(6), loc.GetSentence(7), DeviceWidth()*0.28, DeviceHeight()*0.3)
 		graphVelocity.SetMaxX(12 * 3.261)  ' Max of the x axis is 12 kpc (converted in light years)
 		If (starShape = 1)  graphVelocity.SetImage(starImage, scaleStar)
 		' Create the reference points
@@ -166,14 +197,19 @@ Class DarkMatterInGalaxy Extends App
 		DMFraction = DMFractionTemp
 		
 		' Load fonts
-		font1 = New BitmapFont("Fonts/ZooSmall.txt", True)
-		font1.DrawBorder = True
-		font1.DrawShadow = True 
-		font2 = New BitmapFont("Fonts/CleanWhite.txt", True)
-		font2.DrawBorder = True
-		font2.DrawShadow = True 
+		'font1 = New BitmapFont("Fonts/ZooSmall.txt", True)
+		'font1.DrawBorder = True
+		'font1.DrawShadow = True 
+		'font2 = New BitmapFont("Fonts/CleanWhite.txt", True)
+		'font2.DrawBorder = True
+		'font2.DrawShadow = True 
 		
 		CreateStars()
+		
+		' Set the initial position of the congratulation panel (out of the screen)
+		yMinCongratulation = -DeviceHeight()*0.08
+		yMaxCongratulation = 0
+		yCongratulation = yMinCongratulation
 		
 		DeltaTimer.Init(UPDATE_RATE)
 	End Method
@@ -227,7 +263,7 @@ Class DarkMatterInGalaxy Extends App
 	
 	Method OnUpdate()
 	
-		If (createApplet = 0)  Return
+		If (indexLoadingImage <= indexMaxLoadingImage)  Return 
 		
 		DeltaTimer.Update()
 		
@@ -246,9 +282,9 @@ Class DarkMatterInGalaxy Extends App
 		
 		' Check pause button
 		If (KeyHit(KEY_SPACE))  isPaused = Not isPaused
-		If (CheckButtonTouched(button2X, button2Y, buttonSizeX*scaleButton, buttonSizeY*scaleButton))  isPaused = Not isPaused
+		If (CheckButtonTouched(buttonPlayX, buttonPlayY, buttonSizeX*scaleButton, buttonSizeY*scaleButton))  isPaused = Not isPaused
 		' Check rewind button
-		If (CheckButtonTouched(button1X, button1Y, buttonSizeX*scaleButton, buttonSizeY*scaleButton) And Not isPaused) Then
+		If (CheckButtonTouched(buttonBackX, buttonBackY, buttonSizeX*scaleButton, buttonSizeY*scaleButton) And Not isPaused) Then
 			stars.Clear()
 			CreateStars()
 		Endif
@@ -333,6 +369,19 @@ Class DarkMatterInGalaxy Extends App
 			graphVelocity.SetMaxY(maxVelocity * 1.1)
 		Endif
 		
+		' Update the apparition of the congratulation panel
+		If (foundGoodFraction) Then
+			yCongratulation += 4 * DeltaTimer.factor
+			alphaCongratulation += 0.1
+		Else
+			yCongratulation -= 4 * DeltaTimer.factor
+			alphaCongratulation -= 0.1
+		Endif
+		If (yCongratulation < yMinCongratulation)  yCongratulation = yMinCongratulation
+		If (yCongratulation > yMaxCongratulation)  yCongratulation = yMaxCongratulation
+		If (alphaCongratulation < 0)  alphaCongratulation = 0
+		If (alphaCongratulation > 1)  alphaCongratulation = 1
+		
 		appletJustStarted = False
 	End
 	
@@ -346,17 +395,16 @@ Class DarkMatterInGalaxy Extends App
 		' Return()
 			
 		' Display loading screen first
-		If (createApplet = 0) Then
-			DrawHUD(DeviceWidth()*0.4, DeviceHeight()*0.45, 200, 50)
-			SetBlend(1)
-			Scale(1.5, 1.5)
-			DrawText(loc.GetSentence(13), DeviceWidth()*0.5/1.5, DeviceHeight()*0.48/1.5, 0.5, 0.5)
-			SetMatrix(1,0,0,1,0,0)
+		If (indexLoadingImage <= indexMaxLoadingImage) Then				
+			Local fractionLoading:Int = indexLoadingImage / indexMaxLoadingImage * 100
+			Slider(DeviceWidth()*0.35, DeviceHeight()*0.5, DeviceWidth()*0.3, 20, fractionLoading, Null, 1)
 			
-			CreateApplet()
-			createApplet = 1
+			LoadImageIndex(indexLoadingImage)
+			indexLoadingImage += 1
+			If (indexLoadingImage > indexMaxLoadingImage)  CreateApplet()
 			Return
 		Endif		
+
 							
 		' Draw the galaxy
 		DrawImage(galaxyImage, centerGalaxyX, centerGalaxyY, 0, scaleGalaxy, scaleGalaxy)
@@ -365,6 +413,7 @@ Class DarkMatterInGalaxy Extends App
 			SetAlpha Float(DMSliderValue) / 100.0
 			DrawImage(haloImage, centerGalaxyX, centerGalaxyY, 0, scaleHalo, scaleHalo)
 			SetAlpha 1
+			If (DMFraction > 20)  DrawTextFont(font2, loc.GetSentence(15), DeviceWidth()*0.34, DeviceHeight()*0.7, 0.8, True)
 		Endif
 		
 		' Draw the stars
@@ -375,44 +424,52 @@ Class DarkMatterInGalaxy Extends App
 		SetBlend AlphaBlend
 			
 		' The title
-		DrawHUD(30, 10, DeviceWidth()*0.65, DeviceHeight()*0.18)
-		DrawTextFont(font1, loc.GetSentence(1), DeviceWidth*0.35, 18, 1.0, True)
-		DrawTextFont(font1, loc.GetSentence(2), DeviceWidth*0.35, 50, 0.8, True)
+		'DrawHUD(30, 10, DeviceWidth()*0.65, DeviceHeight()*0.18)
+		'DrawTextFont(font1, loc.GetSentence(1), DeviceWidth*0.35, 18, 1.0, True)
+		'DrawTextFont(font1, loc.GetSentence(2), DeviceWidth*0.35, 50, 0.8, True)
 
-		' The HUD with the buttons	
-		DrawHUD(DeviceWidth()*0.7, 70, DeviceWidth()*0.265, DeviceHeight()*0.4)
 
-		' Draw the buttons
-		DrawImage(buttonImage, button1X, button1Y, 0, scaleButton, scaleButton, 0)
-		If (Not isPaused) Then
-			DrawImage(buttonImage, button2X, button2Y, 0, scaleButton, scaleButton, 2)
-		Else
-			DrawImage(buttonImage, button2X, button2Y, 0, scaleButton, scaleButton, 1)
-		Endif	
-		
-		' Draw the slider
-		DMSliderValue = Slider(0.73*DeviceWidth(), 220, DeviceWidth()*0.2, 20, DMSliderValue, Null, 2)
-
+		' The HUD with the check box	
+		DrawHUD(0, DeviceHeight()*0.9, DeviceWidth(), DeviceHeight()*0.1+1)
 		' Draw the checkbox
 		If Not spiralArms Then velocityCheckBox.Draw()
 		explanationCheckBox.Draw()
 		haloCheckBox.Draw()
 		'spiralCheckBox.Draw()
 		
+		' The HUD with the buttons	
+		DrawHUD(0, DeviceHeight()*0.78 + 2, DeviceWidth(), DeviceHeight()*0.12)
+
+		' Draw the buttons
+		DrawImage(backImage, buttonBackX, buttonBackY, 0, scaleButton, scaleButton)
+		If (Not isPaused) Then
+			DrawImage(pauseImage, buttonPlayX, buttonPlayY, 0, scaleButton, scaleButton)
+		Else
+			DrawImage(playImage, buttonPlayX, buttonPlayY, 0, scaleButton, scaleButton)
+		Endif	
+		
+		' Draw the slider
+		DMSliderValue = Slider(0.5*DeviceWidth(), DeviceHeight()*0.83, DeviceWidth()*0.45, 20, DMSliderValue, Null, 2)
+
+		
 		' Draw the graph
 		'DrawHUD(DeviceWidth()*0.63, DeviceHeight()*0.55, DeviceWidth()*0.365, DeviceHeight()*0.43)
 		graphVelocity.Draw()
 		
 		' YES !
-		If (foundGoodFraction)  DrawTextFont(font1, loc.GetSentence(8), DeviceWidth()*0.85, DeviceHeight()*0.69, 1.0, True)
+		If (yCongratulation > yMinCongratulation) Then
+			alphaCongratulation = 1.0  ' No effect on alpha right now
+			DrawHUD(DeviceWidth()*0.4, yCongratulation, DeviceWidth() * 0.2, DeviceHeight()*0.08, alphaCongratulation)
+			DrawTextFont(font2, loc.GetSentence(8), DeviceWidth()*0.5, DeviceHeight()*0.01 + yCongratulation, 1.2, True, False, alphaCongratulation)
+		Endif
 		
 		' Explanations
 		If explanationCheckBox.isChecked() Then
-			DrawHUD(30, DeviceHeight()*0.3, DeviceWidth()*0.65, DeviceHeight()*0.4, 0.8)
-			DrawTextFont(font1, loc.GetSentence(12), DeviceWidth*0.35, DeviceHeight()*0.32, 0.8, True)
+			DrawHUD(DeviceWidth()*0.15, DeviceHeight()*0.05, DeviceWidth()*0.7, DeviceHeight()*0.7, 0.8)
+			DrawTextFont(font2, loc.GetSentence(12), DeviceWidth*0.5, DeviceHeight()*0.1, 0.8, True)
 		Endif
-		
-		DrawTextFont(font2, "FPS = " + DeltaTimer.fps, DeviceWidth()*0.9, 10, 0.7)
+				
+		'DrawTextFont(font2, "FPS = " + DeltaTimer.fps, DeviceWidth()*0.9, 10, 0.7)
 				
 	End
 End

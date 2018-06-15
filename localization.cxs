@@ -38,6 +38,7 @@ Class Localization
 		sentences[12] = "Dans cette boîte je mettrai~ndes explications supplémentaires.~n~nLes vitesses des étoiles de cet applet sont grandement~naccélérées : à 200 km/s, il faut 350 millions d'années~nà une étoile pour faire un tour complet !~n~n~n~nCredits: Vincent Poireau, Cécile Renault, Canopée."
 		sentences[13] = "Chargement..."
 		sentences[14] = "Halo matière noire"
+		sentences[15] = "Dans la réalité, cet halo est invisible !"
 	End Method
 
 
@@ -56,6 +57,7 @@ Class Localization
 		sentences[12] = "To be translated"
 		sentences[13] = "To be translated"
 		sentences[14] = "To be translated"
+		sentences[15] = "To be translated"
 	End Method	
 
 	

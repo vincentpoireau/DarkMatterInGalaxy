@@ -55,27 +55,39 @@ Function Slider:Int(xl:Int = DeviceWidth() / 2, yl:Int = DeviceHeight() / 2, Len
 			SetColor 000, 000, 000
 			DrawRect(xl, yl + Width / 2, Lenght, 2)
 		Case 1
-			SetColor 128, 16, 16
+			'SetColor 50, 50, 160
+			SetColor 47, 47, 67
 			DrawRect(xl - 5, yl - 5, Lenght + 10, Width + 10)
-			SetColor 128, 64, 64
+			'SetColor 50, 50, 100
+			SetColor 70, 70, 100
 			DrawRect(xl, yl, Lenght, Width)
-			SetColor 64, 128, 64
+			'SetColor 50, 50, 230
+			SetColor 111, 134, 221
 			For Local YW:Int = 1 To Width
 				DrawLine(xl, yl + YW, xl + Percent, yl + YW)
 			Next
 		Case 2
-			SetColor 60, 60, 60
+			'SetColor 60, 60, 60
+			SetColor 47, 47, 67
 			DrawRect(xl - 2, yl + Width / 2 - 2, Lenght + 4, 10)
-			SetColor 100, 100, 100
+			'SetColor 100, 100, 100
+			SetColor 70, 70, 100
 			DrawRect(xl, yl + Width / 2, Lenght, 6)
-			SetColor 200, 200, 200
+			'SetColor 200, 200, 200
+			'SetColor 180, 229, 244
+			SetColor 181, 192, 238	
 			DrawRect(xl, yl + Width / 2, Percent, 6)
 	End Select
+	If Type = 1  Return
+	
 	'SetColor 64, 162, 64
 	'DrawRect(xl - 3 + Percent, yl, 6, Width)
-	SetColor 60, 60, 60
+	'SetColor 60, 60, 60
+	SetColor 47, 47, 67
 	DrawCircle(xl + Percent, yl + Width/2, Width*2.0/2)
-	SetColor 200, 200, 200
+	'SetColor 200, 200, 200
+	SetColor 180, 229, 244
+	SetColor 181, 192, 238	
 	DrawCircle(xl + Percent, yl + Width/2, Width*1.8/2)
 	If SliderImage <> Null Then DrawImage SliderImage, xl + Percent, yl + Width / 2
 	If TouchX() > xl And TouchX() < xl + Lenght
@@ -88,8 +100,8 @@ Function Slider:Int(xl:Int = DeviceWidth() / 2, yl:Int = DeviceHeight() / 2, Len
 	If TrackedValue > 100 Then TrackedValue = 99
 	'If TrackedValue = 99 Then TrackedValue = 100
 	If TrackedValue < 0 Then TrackedValue = 0
-	Local scaleText:Float = 0.8
-	DrawTextFont(font1, loc.GetSentence(3) + TrackedValue + loc.GetSentence(4), xl, yl - 40, scaleText)
+	Local scaleText:Float = 1.0
+	DrawTextFont(font2, loc.GetSentence(3) + TrackedValue + loc.GetSentence(4), xl - 240, yl - 10, scaleText)
 	Return TrackedValue
 End Function
 
@@ -158,8 +170,8 @@ Class CheckBox
 		If Not visible  Return
 		DrawImage(checkboxImage, x, y, 0, scaleImages, scaleImages)
 		If (checked)  DrawImage(checkmarkImage, x, y, 0, scaleImages, scaleImages)
-		Local scaleText:Float = 0.8
-		DrawTextFont(font1, label, x + 25, y + 4, scaleText, False, True)
+		Local scaleText:Float = 1.0
+		DrawTextFont(font2, label, x + 25, y, scaleText, False, True)
 	End Method
 End Class
 
@@ -184,7 +196,7 @@ End Function
 '------------------------------------------------'
 '---------- Draw text with fonts ----------------'
 '------------------------------------------------'
-Function DrawTextFont(font:BitmapFont, text:String, x:Int, y:Int, scale:Float = 1.0, centerX:Bool = False, centerY:Bool = False)
+Function DrawTextFont(font:BitmapFont, text:String, x:Int, y:Int, scale:Float = 1.0, centerX:Bool = False, centerY:Bool = False, alpha:Float = 1.0)
 	' First alignment
 	Local centerXOption:Int = eDrawAlign.LEFT
 	If (centerX)  centerXOption = eDrawAlign.CENTER 
@@ -192,10 +204,12 @@ Function DrawTextFont(font:BitmapFont, text:String, x:Int, y:Int, scale:Float = 
 	If (centerY)  centerYOption = font.GetFontHeight/2
 
 	SetBlend AlphaBlend
+	SetAlpha alpha
 	SetColor 255, 255, 255
 	Scale(scale,scale)
 	font.DrawText(text, x/scale, (y - centerYOption)/scale, centerXOption)
 	SetMatrix(1,0,0,1,0,0)
+	SetAlpha 1
 End Function
 
 
@@ -208,10 +222,12 @@ Function DrawHUD(x:Int, y:Int, w:Int, h:Int, alpha:Float = 1)
 	SetBlend(AlphaBlend)
 	Local widthContour:Int = 4
 	'SetColor 0, 0, 200
-	SetColor 180, 170, 160
+	'SetColor 111, 170, 160
+	SetColor 47, 47, 67
 	DrawRect(x, y, w, h)
-	'SetColor 0, 0, 100
-	SetColor 200, 190, 180
+	'SetColor 0, 0, 250
+	'SetColor 200, 190, 180
+	SetColor 111, 134, 221
 	DrawRect(x + widthContour, y + widthContour, w - widthContour*2, h - widthContour*2)
 	SetColor 255, 255, 255
 End Function
